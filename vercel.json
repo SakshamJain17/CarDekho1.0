@@ -11,8 +11,7 @@
     "backend": {
       "root": ".",
       "framework": "fastapi",
-      "entrypoint": "backend.app:app",
-      "installCommand": "pip install -r backend/requirements-vercel.txt"
+      "entrypoint": "backend.app:app"
     }
   },
   "redirects": [
