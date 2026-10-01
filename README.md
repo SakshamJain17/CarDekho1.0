@@ -2,9 +2,9 @@
 
 ## Live classroom submissions on the performance branch
 
-Visitors can calculate a private estimate at `/performance/`, then choose
-**Share this estimate anonymously**. Only this second, explicit action writes a
-record. The API recalculates the estimate from saved Python models rather than
+Visitors see a submission notice before selecting **Calculate Value** at
+`/performance/`. That action also records their estimate on the presenter
+dashboard; there is no second share step. The API recalculates the estimate from saved Python models rather than
 trusting a client-supplied price. It stores timestamp, vehicle brand/model/year,
 kilometres, selected model and predicted price; it does not request names,
 email addresses or contact details. The presenter-only page is `/presenter/`.

@@ -19,7 +19,7 @@ from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from model_pipeline import ROOT, features_for
-from backend.submissions import add_submission, initialize, snapshot
+from backend.submissions import add_submission, clear_submissions, initialize, snapshot
 
 MODEL_FILES = {"Decision Tree": "decision_tree", "Random Forest": "random_forest", "Gradient Boosting": "gradient_boosting"}
 ModelName = Literal["Decision Tree", "Random Forest", "Gradient Boosting"]
@@ -93,7 +93,7 @@ async def lifespan(app):
 
 app = FastAPI(title="CarDekho AI — Python Prediction API", version="1.0.0", lifespan=lifespan)
 origins = [value.strip() for value in os.getenv("CARDEKHO_CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173").split(",") if value.strip()]
-app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["GET", "POST"], allow_headers=["Content-Type", "X-Presenter-Key"], allow_credentials=False)
+app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["GET", "POST", "DELETE"], allow_headers=["Content-Type", "X-Presenter-Key"], allow_credentials=False)
 
 
 @app.exception_handler(RequestValidationError)
@@ -193,12 +193,25 @@ def submit_valuation(payload: VehicleInput, request: Request):
 
 @app.get("/api/submissions")
 def submissions(request: Request):
+    require_presenter_key(request)
+    response = JSONResponse(snapshot())
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.delete("/api/submissions")
+def reset_submissions(request: Request):
+    require_presenter_key(request)
+    clear_submissions()
+    response = JSONResponse(snapshot())
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+def require_presenter_key(request: Request):
     expected = os.getenv("CARDEKHO_PRESENTER_KEY", "")
     supplied = request.headers.get("X-Presenter-Key", "")
     if not expected:
         raise HTTPException(503, "Presenter dashboard is not configured.")
     if not supplied or not secrets.compare_digest(supplied, expected):
         raise HTTPException(401, "Presenter key is required.")
-    response = JSONResponse(snapshot())
-    response.headers["Cache-Control"] = "no-store"
-    return response

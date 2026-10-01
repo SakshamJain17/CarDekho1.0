@@ -108,6 +108,14 @@ class PredictionAPITests(unittest.TestCase):
                 self.assertEqual(feed.json()["latest"][0]["vehicle_name"], self.vehicle["vehicle_name"])
                 self.assertNotIn("email", feed.text)
                 self.assertNotIn("name", feed.json()["latest"][0])
+                self.assertEqual(self.client.delete("/api/submissions").status_code, 401)
+                self.assertEqual(self.client.delete("/api/submissions", headers={"X-Presenter-Key": "wrong"}).status_code, 401)
+                self.assertEqual(self.client.get("/api/submissions", headers=headers).json()["total"], 1)
+                reset = self.client.delete("/api/submissions", headers=headers)
+                self.assertEqual(reset.status_code, 200)
+                self.assertEqual(reset.headers["cache-control"], "no-store")
+                self.assertEqual(reset.json(), {"total": 0, "average_price": None, "latest": []})
+                self.assertEqual(self.client.get("/api/submissions", headers=headers).json()["total"], 0)
 
 
 if __name__ == "__main__":

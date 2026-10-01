@@ -63,3 +63,9 @@ def snapshot():
         rows = db.execute("SELECT created_at,brand,vehicle_name,model_year,km_driven,predicted_price,model_name FROM valuation_submissions ORDER BY id DESC LIMIT 100").fetchall()
         total, average = db.execute("SELECT COUNT(*), AVG(predicted_price) FROM valuation_submissions").fetchone()
     return {"total": total, "average_price": average, "latest": [dict(zip(("created_at", "brand", "vehicle_name", "year", "km_driven", "predicted_price", "model"), row)) for row in rows]}
+
+
+def clear_submissions():
+    """Clear only the optional audience-submission feed."""
+    with connection() as (db, _, _):
+        db.execute("DELETE FROM valuation_submissions")

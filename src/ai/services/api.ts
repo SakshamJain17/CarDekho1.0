@@ -23,6 +23,7 @@ async function request<T>(
   body?: unknown,
   signal?: AbortSignal,
   headers?: Record<string, string>,
+  method?: string,
 ): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 20_000);
@@ -31,7 +32,7 @@ async function request<T>(
   if (signal?.aborted) controller.abort();
   try {
     const response = await fetch(`${base}${path}`, {
-      method: body ? "POST" : "GET",
+      method: method || (body ? "POST" : "GET"),
       headers: { ...(body ? { "Content-Type": "application/json" } : {}), ...headers },
       body: body ? JSON.stringify(body) : undefined,
       signal: controller.signal,
@@ -106,8 +107,8 @@ export const predictSensitivity = (
     { vehicle, feature, values },
     signal,
   );
-export const shareValuation = (vehicle: Vehicle) =>
-  request<{ status: string; predicted_price: number }>("/submit-valuation", vehicle);
+export const shareValuation = (vehicle: Vehicle, signal?: AbortSignal) =>
+  request<{ status: string; predicted_price: number }>("/submit-valuation", vehicle, signal);
 export type SharedSubmission = {
   created_at: string;
   brand: string;
@@ -126,3 +127,7 @@ export const loadSubmissions = (key: string) =>
   request<SubmissionSnapshot>("/submissions", undefined, undefined, {
     "X-Presenter-Key": key,
   });
+export const resetSubmissions = (key: string) =>
+  request<SubmissionSnapshot>("/submissions", undefined, undefined, {
+    "X-Presenter-Key": key,
+  }, "DELETE");

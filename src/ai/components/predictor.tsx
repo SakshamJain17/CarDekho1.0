@@ -395,6 +395,8 @@ export function PricePredictor({
     setResult(null);
     setComparison([]);
     setComparisonError("");
+    setShareState("idle");
+    setShareError("");
     try {
       const response = await predictPrice(vehicle, abort.signal);
       if (requestId !== sequence.current) return;
@@ -403,6 +405,21 @@ export function PricePredictor({
           "API models and presentation data have different provenance. Re-export and restart before demonstrating.",
         );
       setResult(response);
+      if (allowSharing) {
+        setShareState("sharing");
+        try {
+          const receipt = await shareValuation(response.inputs, abort.signal);
+          if (requestId !== sequence.current) return;
+          if (Math.abs(receipt.predicted_price - response.predicted_price) > 0.01)
+            throw new Error("The recorded estimate differs from the displayed value.");
+          setShareState("shared");
+        } catch (cause) {
+          if (!abort.signal.aborted && requestId === sequence.current) {
+            setShareState("idle");
+            setShareError(cause instanceof Error ? cause.message : "Could not record this valuation.");
+          }
+        }
+      }
       try {
         const all = await predictAll(vehicle, abort.signal);
         if (requestId === sequence.current) setComparison(all.predictions);
@@ -436,20 +453,6 @@ export function PricePredictor({
     link.download = "cardekho-ai-valuation.json";
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
-  async function share() {
-    if (!result || shareState !== "idle") return;
-    setShareState("sharing");
-    setShareError("");
-    try {
-      const receipt = await shareValuation(result.inputs);
-      if (Math.abs(receipt.predicted_price - result.predicted_price) > 0.01)
-        throw new Error("The shared estimate changed. Recalculate before presenting it.");
-      setShareState("shared");
-    } catch (cause) {
-      setShareState("idle");
-      setShareError(cause instanceof Error ? cause.message : "Could not share this valuation.");
-    }
   }
   return (
     <section id="predict" className="ai-section ai-predict-section">
@@ -504,6 +507,7 @@ export function PricePredictor({
                   </div>
                 </div>
               ))}
+              {allowSharing && <p className="performance-submit-notice">By selecting Calculate Value, your car specifications and estimated price are sent to the presenter’s live dashboard. No name, email address, or contact details are requested.</p>}
               <button
                 className="ai-button ai-calculate"
                 type="submit"
@@ -526,15 +530,7 @@ export function PricePredictor({
                 {error}
               </p>
             )}
-            {allowSharing && result && (
-              <div className="performance-share">
-                <p>Private by default. You may share this car’s specifications and estimate with the presenter’s live dashboard. No name, email, or contact details are requested.</p>
-                <button type="button" onClick={share} disabled={shareState !== "idle"}>
-                  {shareState === "shared" ? "SHARED WITH THE LIVE DASHBOARD" : shareState === "sharing" ? "SHARING…" : "SHARE THIS ESTIMATE ANONYMOUSLY"}
-                </button>
-                {shareError && <p role="alert">{shareError}</p>}
-              </div>
-            )}
+            {allowSharing && result && <p className="performance-submit-status" role={shareError ? "alert" : "status"}>{shareError ? `Estimate shown, but not recorded: ${shareError}` : shareState === "shared" ? "ESTIMATE SENT TO THE LIVE DASHBOARD" : "SENDING ESTIMATE TO THE LIVE DASHBOARD…"}</p>}
           </form>
           <div className="ai-valuation-panel">
             <img src={valuationImage} alt={valuationImageAlt} loading="lazy" />
