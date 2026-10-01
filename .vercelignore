@@ -1,11 +1,11 @@
 .venv
 __pycache__
-data
-models
+node_modules
+dist
 outputs
 artifacts
 tests
+submission
 .streamlit
-*.py
-requirements.txt
+runtime_data
 .DS_Store

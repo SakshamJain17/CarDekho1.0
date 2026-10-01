@@ -14,16 +14,17 @@ browser session storage. Do not put the key in a QR code or a Vite environment
 variable. The QR code should point to `/performance/#predict` (or
 `/performance/` if you want visitors to see the video first).
 
-For a local rehearsal, set `CARDEKHO_PRESENTER_KEY` to a long random secret on
-the Python backend. Local submissions default to ignored
-`runtime_data/submissions.sqlite3`. Set `CARDEKHO_DATABASE_URL` to a persistent
-PostgreSQL connection string for production; SQLite on a serverless function is
-not durable. The database and presenter key are server-side secrets. Set
-`VITE_CARDEKHO_API_URL` for the frontend and `CARDEKHO_CORS_ORIGINS` for the
-backend as described below. The Vercel deployment currently builds static pages
-only; a running Python backend and persistent database are required before a
-public QR-code demonstration. Protect the presenter key and consider classroom
-spam/rate limits before exposing the submission endpoint broadly.
+For a local rehearsal, set `CARDEKHO_PRESENTER_KEY` on the Python backend.
+Local submissions default to ignored `runtime_data/submissions.sqlite3`.
+Production requires a persistent PostgreSQL `DATABASE_URL` (or
+`CARDEKHO_DATABASE_URL`); SQLite on a serverless function is not durable.
+The Vercel configuration uses a Vite frontend and FastAPI backend as two
+services on one domain. Its production build publishes only `/performance/`
+and `/presenter/`, redirects `/` to the performance page, and routes `/api/*`
+to FastAPI. Set the presenter key as a server-side environment variable; never
+put it in a Vite variable or QR code. Connect a Neon Postgres database before
+deploying. Protect the presenter key and consider classroom spam/rate limits
+before exposing the submission endpoint broadly.
 
 ## Performance edition — Lamborghini-inspired alternative
 
@@ -152,17 +153,18 @@ stale estimates. Sensitivity changes one feature while keeping the others fixed;
 it is not a causal effect or depreciation forecast. Export downloads the actual
 valuation response and all-model comparison as JSON.
 
-### Deploy the alternative
+### Deploy the performance edition
 
-GitHub stores the source; Vercel serves the Vite build (`npm run build`, output
-`dist`). Both HTML entries are built. **Vercel's static frontend does not run
-these Python models.** Deploy `backend.app:app` separately on a Python-capable
-service with repository data/model files and `backend/requirements.txt`.
-Set `VITE_CARDEKHO_API_URL=https://YOUR-BACKEND/api` in Vercel **before building**.
-Set `CARDEKHO_CORS_ORIGINS=https://YOUR-FRONTEND.vercel.app` on the Python host
-(comma-separated exact origins if multiple domains are needed). Use HTTPS on
-both sides. Do not expose credentials in Vite variables. Runtime models are
-historical academic estimators, not a production marketplace price guarantee.
+Import `SakshamJain17/CarDekho1.0` into one Vercel project using its `main`
+branch and the repository root. The `services` configuration in `vercel.json`
+builds only the performance and presenter pages and runs `backend.app:app`
+as FastAPI under `/api/*`; no `VITE_CARDEKHO_API_URL` or cross-origin setting
+is needed for this same-domain deployment. Connect Neon Free to the project
+and confirm it supplies `DATABASE_URL` to production. Add
+`CARDEKHO_PRESENTER_KEY` as a server-side production environment variable.
+Only deploy after the build, `/api/health`, one valuation, and the presenter
+feed have been checked. Runtime models are historical academic estimators, not
+a production marketplace price guarantee.
 
 ### Verify
 

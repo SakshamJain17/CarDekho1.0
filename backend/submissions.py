@@ -21,7 +21,12 @@ POSTGRES_SCHEMA = SCHEMA.replace("id INTEGER PRIMARY KEY AUTOINCREMENT", "id BIG
 
 
 def database_url():
-    return os.getenv("CARDEKHO_DATABASE_URL", f"sqlite:///{ROOT / 'runtime_data/submissions.sqlite3'}")
+    configured = os.getenv("CARDEKHO_DATABASE_URL") or os.getenv("DATABASE_URL")
+    if configured:
+        return configured
+    if os.getenv("VERCEL"):
+        raise RuntimeError("Persistent database is required on Vercel. Connect Neon and set DATABASE_URL.")
+    return f"sqlite:///{ROOT / 'runtime_data/submissions.sqlite3'}"
 
 
 @contextmanager

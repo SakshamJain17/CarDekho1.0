@@ -9,7 +9,7 @@ import pandas as pd
 from fastapi.testclient import TestClient
 
 from backend.app import app
-from backend.submissions import initialize
+from backend.submissions import database_url, initialize
 from model_pipeline import ROOT, features_for
 
 
@@ -31,6 +31,13 @@ class PredictionAPITests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.json()["models"]), 3)
         self.assertEqual(self.client.get("/api/project").json()["raw_rows"], 8128)
+
+    def test_vercel_requires_persistent_submission_database(self):
+        with patch.dict(os.environ, {"VERCEL": "1"}, clear=True):
+            with self.assertRaisesRegex(RuntimeError, "Persistent database"):
+                database_url()
+        with patch.dict(os.environ, {"VERCEL": "1", "DATABASE_URL": "postgresql://example.invalid/example"}, clear=True):
+            self.assertEqual(database_url(), "postgresql://example.invalid/example")
 
     def test_each_prediction_equals_saved_python_pipeline(self):
         for name, pipeline in app.state.models.items():
